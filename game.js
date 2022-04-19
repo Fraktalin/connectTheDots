@@ -1,9 +1,10 @@
-var game;
+let game;
 
-var gameOptions = {
+let gameOptions = {
   gameWidth: 1000,
   gameHeight: 1400,
   tileSize: 140,
+  score: 0,
   fieldSize: {
     rows: 6,
     cols: 6,
@@ -18,13 +19,13 @@ window.onload = function () {
   game.state.start("TheGame");
 };
 
-var TheGame = function () {};
+let TheGame = function () {};
 
 TheGame.prototype = {
   preload: function () {
     game.stage.backgroundColor = 0x444444;
-    game.load.image("tiles", "assets/sprites/tiles.png");
-    game.load.spritesheet("arrows", "assets/sprites/arrows.png", 420, 420);
+    game.load.image("tiles", "./assets/sprites/tiles.png");
+    game.load.image("arrows", "./assets/sprites/arrows.png");
   },
   create: function () {
     game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
@@ -32,11 +33,21 @@ TheGame.prototype = {
     game.scale.pageAlignVertically = true;
     this.createLevel();
     game.input.onDown.add(this.pickTile, this);
+    this.createText();
+  },
+  createText: function () {
+    game.score = game.add.text(700, 10, "POINTS: 0", {
+      fill: "#fff",
+      font: "50px Arial",
+    });
+  },
+  setScore: function () {
+    gameOptions.score++;
+    game.score.setText("POINTS: " + gameOptions.score);
   },
   createLevel: function () {
     this.tilesArray = [];
     this.arrowsArray = [];
-    // group creation and placement to stay in the center of the canvas
     this.tileGroup = game.add.group();
     this.arrowsGroup = game.add.group();
     this.tileGroup.x =
@@ -54,28 +65,25 @@ TheGame.prototype = {
       gameOptions.tileSize * gameOptions.fieldSize.rows
     );
     this.tileGroup.mask = tileMask;
-    // tile creation
-    for (var i = 0; i < gameOptions.fieldSize.rows; i++) {
+    for (let i = 0; i < gameOptions.fieldSize.rows; i++) {
       this.tilesArray[i] = [];
-      for (var j = 0; j < gameOptions.fieldSize.cols; j++) {
+      for (let j = 0; j < gameOptions.fieldSize.cols; j++) {
         this.addTile(i, j);
       }
     }
     this.removedTiles = [];
   },
   addTile: function (row, col) {
-    // adding a new tile
-    var tileXPos = col * gameOptions.tileSize + gameOptions.tileSize / 2;
-    var tileYPos = row * gameOptions.tileSize + gameOptions.tileSize / 2;
-    var theTile = game.add.sprite(tileXPos, tileYPos, "tiles");
+    let tileXPos = col * gameOptions.tileSize + gameOptions.tileSize / 2;
+    let tileYPos = row * gameOptions.tileSize + gameOptions.tileSize / 2;
+    let theTile = game.add.sprite(tileXPos, tileYPos, "tiles");
     theTile.anchor.set(0.5);
     theTile.picked = false;
     theTile.coordinate = new Phaser.Point(col, row);
     theTile.value = Phaser.ArrayUtils.getRandomItem(gameOptions.colors);
     theTile.tint = theTile.value;
-    console.log(theTile.tint);
     this.tilesArray[row][col] = theTile;
-    var text = game.add.text(
+    let text = game.add.text(
       -gameOptions.tileSize / 4,
       0,
       "R" +
@@ -88,14 +96,13 @@ TheGame.prototype = {
     this.tileGroup.add(theTile);
   },
   pickTile: function (e) {
-    // picking the first tile
     this.visitedTiles = [];
     this.visitedTiles.length = 0;
     if (this.tileGroup.getBounds().contains(e.position.x, e.position.y)) {
-      var col = Math.floor(
+      let col = Math.floor(
         (e.position.x - this.tileGroup.x) / gameOptions.tileSize
       );
-      var row = Math.floor(
+      let row = Math.floor(
         (e.position.y - this.tileGroup.y) / gameOptions.tileSize
       );
       this.tilesArray[row][col].alpha = 0.5;
@@ -105,28 +112,24 @@ TheGame.prototype = {
       game.input.onUp.add(this.releaseTile, this);
       game.input.addMoveCallback(this.moveTile, this);
       this.visitedTiles.push(this.tilesArray[row][col].coordinate);
-      console.log("Picked tile at R" + row + ", C" + col);
     }
   },
   moveTile: function (e) {
-    // we are over a tile
     if (this.tileGroup.getBounds().contains(e.position.x, e.position.y)) {
-      var col = Math.floor(
+      let col = Math.floor(
         (e.position.x - this.tileGroup.x) / gameOptions.tileSize
       );
-      var row = Math.floor(
+      let row = Math.floor(
         (e.position.y - this.tileGroup.y) / gameOptions.tileSize
       );
-      var distance = new Phaser.Point(
+      let distance = new Phaser.Point(
         e.position.x - this.tileGroup.x,
         e.position.y - this.tileGroup.y
       ).distance(this.tilesArray[row][col]);
-      // we are inside enough a tile
       if (
         distance < gameOptions.tileSize * 0.4 &&
         this.tilesArray[row][col].value == this.pickedColor
       ) {
-        // a new, adjacent tile
         if (
           !this.tilesArray[row][col].picked &&
           this.checkAdjacent(
@@ -138,10 +141,7 @@ TheGame.prototype = {
           this.tilesArray[row][col].alpha = 0.5;
           this.visitedTiles.push(this.tilesArray[row][col].coordinate);
           this.addArrow();
-          console.log("Adding tile at R" + row + ", C" + col);
-        }
-        // backtrack
-        else {
+        } else {
           if (
             this.visitedTiles.length > 1 &&
             row == this.visitedTiles[this.visitedTiles.length - 2].y &&
@@ -156,7 +156,6 @@ TheGame.prototype = {
             this.visitedTiles.pop();
             this.arrowsArray[this.arrowsArray.length - 1].destroy();
             this.arrowsArray.pop();
-            // console.log("Back to tile at R" + row + ",C" + col);
           }
         }
       }
@@ -165,11 +164,8 @@ TheGame.prototype = {
   releaseTile: function () {
     game.input.onUp.remove(this.releaseTile, this);
     game.input.deleteMoveCallback(this.moveTile, this);
-    // clear the path
     this.clearPath();
-    // make tiles fall down
     this.tilesFallDown();
-    // create new tiles
     this.placeNewTiles();
   },
   checkAdjacent: function (p1, p2) {
@@ -179,9 +175,8 @@ TheGame.prototype = {
     );
   },
   addArrow: function () {
-    // adding the arrows
-    var fromTile = this.visitedTiles[this.visitedTiles.length - 2];
-    var arrow = game.add.sprite(
+    let fromTile = this.visitedTiles[this.visitedTiles.length - 2];
+    let arrow = game.add.sprite(
       this.tilesArray[fromTile.y][fromTile.x].x,
       this.tilesArray[fromTile.y][fromTile.x].y,
       "arrows"
@@ -190,8 +185,7 @@ TheGame.prototype = {
     arrow.anchor.set(0.5);
     arrow.value = this.pickedColor;
     arrow.tint = arrow.value;
-    // this routine handles arrow frame and angle according to its direction
-    var tileDiff = new Phaser.Point(
+    let tileDiff = new Phaser.Point(
       this.visitedTiles[this.visitedTiles.length - 1].x,
       this.visitedTiles[this.visitedTiles.length - 1].y
     );
@@ -215,13 +209,7 @@ TheGame.prototype = {
   },
   clearPath: function () {
     this.arrowsGroup.removeAll(true);
-    for (var i = 0; i < this.visitedTiles.length; i++) {
-      // console.log(
-      //   "Removed tile R" +
-      //     this.visitedTiles[i].y +
-      //     ", C" +
-      //     this.visitedTiles[i].x
-      // );
+    for (let i = 0; i < this.visitedTiles.length; i++) {
       this.tilesArray[this.visitedTiles[i].y][
         this.visitedTiles[i].x
       ].visible = false;
@@ -229,37 +217,20 @@ TheGame.prototype = {
         this.tilesArray[this.visitedTiles[i].y][this.visitedTiles[i].x]
       );
       this.tilesArray[this.visitedTiles[i].y][this.visitedTiles[i].x] = null;
-      // console.log(
-      //   "Removed tilesArray entry [" +
-      //     this.visitedTiles[i].y +
-      //     "][" +
-      //     this.visitedTiles[i].x +
-      //     "]"
-      // );
     }
   },
   tilesFallDown: function () {
-    for (var i = gameOptions.fieldSize.cols - 1; i >= 0; i--) {
-      for (var j = 0; j < gameOptions.fieldSize.rows; j++) {
+    for (let i = gameOptions.fieldSize.cols - 1; i >= 0; i--) {
+      for (let j = 0; j < gameOptions.fieldSize.rows; j++) {
         if (this.tilesArray[i][j] != null) {
-          var holes = this.holesBelow(i, j);
+          let holes = this.holesBelow(i, j);
           if (holes > 0) {
-            var coordinate = new Phaser.Point(
+            let coordinate = new Phaser.Point(
               this.tilesArray[i][j].coordinate.x,
               this.tilesArray[i][j].coordinate.y
             );
-            var destination = new Phaser.Point(j, i + holes);
-            // console.log(
-            //   "Tile at R" +
-            //     coordinate.y +
-            //     ", C" +
-            //     coordinate.x +
-            //     " moves to R" +
-            //     destination.y +
-            //     ", C" +
-            //     destination.x
-            // );
-            var tween = game.add.tween(this.tilesArray[i][j]).to(
+            let destination = new Phaser.Point(j, i + holes);
+            let tween = game.add.tween(this.tilesArray[i][j]).to(
               {
                 y: this.tilesArray[i][j].y + holes * gameOptions.tileSize,
               },
@@ -270,21 +241,7 @@ TheGame.prototype = {
             tween.onComplete.add(this.nextPick, this);
             this.tilesArray[destination.y][destination.x] =
               this.tilesArray[i][j];
-            // console.log(
-            //   "Replenished tilesArray entry [" +
-            //     destination.y +
-            //     "][" +
-            //     destination.x +
-            //     "]"
-            // );
             this.tilesArray[coordinate.y][coordinate.x] = null;
-            // console.log(
-            //   "Removed tilesArray entry [" +
-            //     coordinate.y +
-            //     "][" +
-            //     coordinate.x +
-            //     "]"
-            // );
             this.tilesArray[destination.y][destination.x].coordinate =
               new Phaser.Point(destination.x, destination.y);
             this.tilesArray[destination.y][destination.x].children[0].text =
@@ -295,22 +252,21 @@ TheGame.prototype = {
     }
   },
   placeNewTiles: function () {
-    for (var i = 0; i < gameOptions.fieldSize.cols; i++) {
-      var holes = this.holesInCol(i);
+    for (let i = 0; i < gameOptions.fieldSize.cols; i++) {
+      let holes = this.holesInCol(i);
       if (holes > 0) {
-        for (var j = 1; j <= holes; j++) {
-          var tileXPos = i * gameOptions.tileSize + gameOptions.tileSize / 2;
-          var tileYPos = -j * gameOptions.tileSize + gameOptions.tileSize / 2;
-          var theTile = this.removedTiles.pop();
+        for (let j = 1; j <= holes; j++) {
+          let tileXPos = i * gameOptions.tileSize + gameOptions.tileSize / 2;
+          let tileYPos = -j * gameOptions.tileSize + gameOptions.tileSize / 2;
+          let theTile = this.removedTiles.pop();
           theTile.position = new Phaser.Point(tileXPos, tileYPos);
           theTile.visible = true;
           theTile.alpha = 1;
           theTile.picked = false;
           theTile.value = Phaser.ArrayUtils.getRandomItem(gameOptions.colors);
 
-          console.log(theTile.value);
           theTile.tint = theTile.value;
-          var tween = game.add.tween(theTile).to(
+          let tween = game.add.tween(theTile).to(
             {
               y: theTile.y + holes * gameOptions.tileSize,
             },
@@ -323,15 +279,7 @@ TheGame.prototype = {
           this.tilesArray[holes - j][i] = theTile;
           theTile.children[0].text =
             "R" + theTile.coordinate.y + ", C" + theTile.coordinate.x;
-          // console.log(
-          //   "Created a new tile at R" +
-          //     theTile.coordinate.y.toString() +
-          //     ", C" +
-          //     theTile.coordinate.x.toString()
-          // );
-          // console.log(
-          //   "Added tilesArray entry [" + (holes - j).toString() + "][" + i + "]"
-          // );
+          this.setScore();
         }
       }
     }
@@ -339,12 +287,11 @@ TheGame.prototype = {
   nextPick: function () {
     if (!game.input.onDown.has(this.pickTile, this)) {
       game.input.onDown.add(this.pickTile, this);
-      // console.log("added");
     }
   },
   holesBelow: function (row, col) {
-    var result = 0;
-    for (var i = row + 1; i < gameOptions.fieldSize.rows; i++) {
+    let result = 0;
+    for (let i = row + 1; i < gameOptions.fieldSize.rows; i++) {
       if (this.tilesArray[i][col] == null) {
         result++;
       }
@@ -352,8 +299,8 @@ TheGame.prototype = {
     return result;
   },
   holesInCol: function (col) {
-    var result = 0;
-    for (var i = 0; i < gameOptions.fieldSize.rows; i++) {
+    let result = 0;
+    for (let i = 0; i < gameOptions.fieldSize.rows; i++) {
       if (this.tilesArray[i][col] == null) {
         result++;
       }
