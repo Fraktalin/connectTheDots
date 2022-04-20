@@ -19,33 +19,32 @@ window.onload = function () {
   game.state.start("TheGame");
 };
 
-let TheGame = function () {};
-
-TheGame.prototype = {
-  preload: function () {
+class TheGame {
+  constructor() {}
+  preload() {
     game.stage.backgroundColor = 0x444444;
     game.load.image("tiles", "./assets/sprites/tiles.png");
     game.load.image("arrows", "./assets/sprites/arrows.png");
-  },
-  create: function () {
+  }
+  create() {
     game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
     game.scale.pageAlignHorizontally = true;
     game.scale.pageAlignVertically = true;
     this.createLevel();
     game.input.onDown.add(this.pickTile, this);
     this.createText();
-  },
-  createText: function () {
+  }
+  createText() {
     game.score = game.add.text(700, 10, "POINTS: 0", {
       fill: "#fff",
       font: "50px Arial",
     });
-  },
-  setScore: function () {
+  }
+  setScore() {
     gameOptions.score++;
     game.score.setText("POINTS: " + gameOptions.score);
-  },
-  createLevel: function () {
+  }
+  createLevel() {
     this.tilesArray = [];
     this.arrowsArray = [];
     this.tileGroup = game.add.group();
@@ -56,7 +55,7 @@ TheGame.prototype = {
       (game.height - gameOptions.tileSize * gameOptions.fieldSize.rows) / 2;
     this.arrowsGroup.x = this.tileGroup.x;
     this.arrowsGroup.y = this.tileGroup.y;
-    tileMask = game.add.graphics(this.tileGroup.x, this.tileGroup.y);
+    let tileMask = game.add.graphics(this.tileGroup.x, this.tileGroup.y);
     tileMask.beginFill(0x343434);
     tileMask.drawRect(
       0,
@@ -72,8 +71,8 @@ TheGame.prototype = {
       }
     }
     this.removedTiles = [];
-  },
-  addTile: function (row, col) {
+  }
+  addTile(row, col) {
     let tileXPos = col * gameOptions.tileSize + gameOptions.tileSize / 2;
     let tileYPos = row * gameOptions.tileSize + gameOptions.tileSize / 2;
     let theTile = game.add.sprite(tileXPos, tileYPos, "tiles");
@@ -94,8 +93,8 @@ TheGame.prototype = {
     );
     theTile.addChild(text);
     this.tileGroup.add(theTile);
-  },
-  pickTile: function (e) {
+  }
+  pickTile(e) {
     this.visitedTiles = [];
     this.visitedTiles.length = 0;
     if (this.tileGroup.getBounds().contains(e.position.x, e.position.y)) {
@@ -113,8 +112,8 @@ TheGame.prototype = {
       game.input.addMoveCallback(this.moveTile, this);
       this.visitedTiles.push(this.tilesArray[row][col].coordinate);
     }
-  },
-  moveTile: function (e) {
+  }
+  moveTile(e) {
     if (this.tileGroup.getBounds().contains(e.position.x, e.position.y)) {
       let col = Math.floor(
         (e.position.x - this.tileGroup.x) / gameOptions.tileSize
@@ -160,21 +159,21 @@ TheGame.prototype = {
         }
       }
     }
-  },
-  releaseTile: function () {
+  }
+  releaseTile() {
     game.input.onUp.remove(this.releaseTile, this);
     game.input.deleteMoveCallback(this.moveTile, this);
     this.clearPath();
     this.tilesFallDown();
     this.placeNewTiles();
-  },
-  checkAdjacent: function (p1, p2) {
+  }
+  checkAdjacent(p1, p2) {
     return (
       (Math.abs(p1.x - p2.x) == 1 && p1.y - p2.y == 0) ||
       (Math.abs(p1.y - p2.y) == 1 && p1.x - p2.x == 0)
     );
-  },
-  addArrow: function () {
+  }
+  addArrow() {
     let fromTile = this.visitedTiles[this.visitedTiles.length - 2];
     let arrow = game.add.sprite(
       this.tilesArray[fromTile.y][fromTile.x].x,
@@ -204,10 +203,9 @@ TheGame.prototype = {
         }
       }
     }
-    // theTile.value = Phaser.ArrayUtils.getRandomItem(gameOptions.colors)
     this.arrowsArray.push(arrow);
-  },
-  clearPath: function () {
+  }
+  clearPath() {
     this.arrowsGroup.removeAll(true);
     for (let i = 0; i < this.visitedTiles.length; i++) {
       this.tilesArray[this.visitedTiles[i].y][
@@ -218,8 +216,8 @@ TheGame.prototype = {
       );
       this.tilesArray[this.visitedTiles[i].y][this.visitedTiles[i].x] = null;
     }
-  },
-  tilesFallDown: function () {
+  }
+  tilesFallDown() {
     for (let i = gameOptions.fieldSize.cols - 1; i >= 0; i--) {
       for (let j = 0; j < gameOptions.fieldSize.rows; j++) {
         if (this.tilesArray[i][j] != null) {
@@ -250,8 +248,8 @@ TheGame.prototype = {
         }
       }
     }
-  },
-  placeNewTiles: function () {
+  }
+  placeNewTiles() {
     for (let i = 0; i < gameOptions.fieldSize.cols; i++) {
       let holes = this.holesInCol(i);
       if (holes > 0) {
@@ -283,13 +281,13 @@ TheGame.prototype = {
         }
       }
     }
-  },
-  nextPick: function () {
+  }
+  nextPick() {
     if (!game.input.onDown.has(this.pickTile, this)) {
       game.input.onDown.add(this.pickTile, this);
     }
-  },
-  holesBelow: function (row, col) {
+  }
+  holesBelow(row, col) {
     let result = 0;
     for (let i = row + 1; i < gameOptions.fieldSize.rows; i++) {
       if (this.tilesArray[i][col] == null) {
@@ -297,8 +295,8 @@ TheGame.prototype = {
       }
     }
     return result;
-  },
-  holesInCol: function (col) {
+  }
+  holesInCol(col) {
     let result = 0;
     for (let i = 0; i < gameOptions.fieldSize.rows; i++) {
       if (this.tilesArray[i][col] == null) {
@@ -306,5 +304,5 @@ TheGame.prototype = {
       }
     }
     return result;
-  },
-};
+  }
+}
